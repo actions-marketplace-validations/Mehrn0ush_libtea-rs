@@ -15,7 +15,7 @@ lock file honest in CI:
 ```yaml
 - uses: Mehrn0ush/libtea-rs@<commit-sha-of-a-release-tag>
   with:
-    version: "0.1.5"
+    version: "0.1.6"
     command: sync
     tei: tei://example.com/uuid/2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
     lock-file: tea.lock
@@ -26,7 +26,7 @@ lock file honest in CI:
 
 | Input | Meaning |
 | --- | --- |
-| `version` (required) | The libtea version to install, for example `0.1.5`. There is no `latest`: pin it. |
+| `version` (required) | The libtea version to install, for example `0.1.6`. There is no `latest`: pin it. |
 | `command` (required) | `sync`, `diff`, `discover`, `download`, `product-release`, `collections`, `parse-tei`, `spec` or `conformance`. |
 | `tei` | A `tei://` identifier, for `sync`, `discover`, `parse-tei`. |
 | `lock-file` | Lock path for `sync`; the old lock for `diff`. |
@@ -120,7 +120,7 @@ jobs:
         with:
           api-key-id: ${{ secrets.TEA_API_KEY_ID }}
           api-key-secret: ${{ secrets.TEA_API_KEY_SECRET }}
-          version: "0.1.5"
+          version: "0.1.6"
           command: sync
           check: "true"
           tei: tei://example.com/uuid/2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
@@ -148,7 +148,7 @@ jobs:
         with:
           api-key-id: ${{ secrets.TEA_API_KEY_ID }}
           api-key-secret: ${{ secrets.TEA_API_KEY_SECRET }}
-          version: "0.1.5"
+          version: "0.1.6"
           command: sync
           check: "true"
           tei: tei://example.com/uuid/2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
@@ -177,7 +177,7 @@ jobs:
         with:
           api-key-id: ${{ secrets.TEA_API_KEY_ID }}
           api-key-secret: ${{ secrets.TEA_API_KEY_SECRET }}
-          version: "0.1.5"
+          version: "0.1.6"
           command: sync
           tei: tei://example.com/uuid/2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
           lock-file: tea.lock
@@ -202,7 +202,7 @@ jobs:
         with:
           api-key-id: ${{ secrets.TEA_API_KEY_ID }}
           api-key-secret: ${{ secrets.TEA_API_KEY_SECRET }}
-          version: "0.1.5"
+          version: "0.1.6"
           command: download
           base-url: https://api.example.com
           extra-args: |
@@ -226,6 +226,19 @@ jobs:
   attestation check set to `required` (skipped in the container, which has no
   `gh`). A job that sets `TEA_API_KEY_ID` in `env:` was refused as intended.
   The first run failed on Windows and in Alpine; both were fixed in 0.1.2.
+- Commands that contact a server were run through the Action (`v0.1.5`) on
+  2026-11-12, scratch-repository run 43160787117: `discover`,
+  `product-release`, `sync` and `sync` with `check: "true"` against the
+  public Vulnetix server on `ubuntu-24.04`, `macos-15` and `windows-2022`, and
+  `discover` and `sync` against the public ReARM demo on `ubuntu-24.04`, all
+  with `attestation: required`. All passed (`docs/interoperability.md`). A
+  job that set `api-key-id` and `api-key-secret` from secrets ran the offline
+  `spec` command: `TEA_API_KEY_ID` and `TEA_API_KEY_SECRET` were set only in
+  the environment of the step that runs `libtea` (the install and attestation
+  steps had neither), they were masked, and the raw values do not occur in the
+  log. That
+  checks the plumbing only; no token was sent to a server, and no server that
+  needs credentials has been tried.
 - Runners: Linux, macOS and Windows (x86_64 and arm64 where the release has a
   build).
 - The cache holds only the archive, keyed by version and target. It is
