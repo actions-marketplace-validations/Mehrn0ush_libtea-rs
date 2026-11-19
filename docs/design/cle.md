@@ -1,6 +1,6 @@
 # CLE evaluation (ECMA-428), `vers` semver only: design
 
-**Status:** stage 1 implemented after 0.1.6 (issue #11): `libtea_core::vers`
+**Status:** stage 1 shipped in 0.1.7 (issue #11; stage 2 is #61): `libtea_core::vers`
 and `Cle::status_for_semver`. The proposal below is kept as written; "What was
 built" at the end says where the implementation differs.
 
@@ -112,6 +112,10 @@ against ECMA-428 is the first task of the implementation PR.
 
 Decisions taken: library only (no CLI command yet); a general `vers` parser
 with SemVer comparison only; additive and Experimental.
+
+After 0.1.7 (part of #61): the CLI command `libtea cle` fetches a CLE
+document and with `--version` prints `status_for_semver` for it, including
+the unevaluated events (`docs/cli-json.md`).
 
 - `libtea_core::vers::{VersRange, Constraint, Comparator, VersError,
   MAX_VERS_BYTES}`. `VersRange::parse` checks the syntax of any type;

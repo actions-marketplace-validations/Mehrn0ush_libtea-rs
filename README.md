@@ -9,7 +9,7 @@
 
 Independent Rust client libraries and a command-line tool for the [Transparency Exchange API](https://github.com/CycloneDX/transparency-exchange-api) (TEA).
 
-**Status:** 0.1.6. Releases 0.1.1 to 0.1.4 changed only documentation, CI and the GitHub Action; 0.1.5 added `libtea_client::core`, a re-export of `libtea-core`; 0.1.6 fixes a panic in `libtea_core::http_cache::parse_retry_after` and updates internal dependencies. Supported TEA versions, Rust versions and platforms, and how each is tested: [`docs/compatibility.md`](docs/compatibility.md). `libtea-core` and `libtea-client` are on crates.io and the `libtea` binaries are on GitHub Releases. Experimental until 0.9: expect breaking changes before 1.0. Written against TEA commit `962a0228af1bfcc1232ac3f79239317ff33fdb04` (OpenAPI 1.0.0; the TEA specification is still beta). Minimum supported Rust version: 1.89. License: Apache-2.0.
+**Status:** 0.1.7. Releases 0.1.1 to 0.1.4 changed only documentation, CI and the GitHub Action; 0.1.5 added `libtea_client::core`, a re-export of `libtea-core`; 0.1.6 fixed a panic in `libtea_core::http_cache::parse_retry_after` and updated internal dependencies; 0.1.7 adds Package URL parsing and comparison (`libtea_core::purl`), version ranges and CLE lifecycle evaluation for SemVer (`libtea_core::vers`, `libtea_core::lifecycle`), and signature format detection (`libtea_core::signature_format`, all Experimental), and fixes lost cache entries when several clients share a cache directory. Supported TEA versions, Rust versions and platforms, and how each is tested: [`docs/compatibility.md`](docs/compatibility.md). `libtea-core` and `libtea-client` are on crates.io and the `libtea` binaries are on GitHub Releases. Experimental until 0.9: expect breaking changes before 1.0. Written against TEA commit `962a0228af1bfcc1232ac3f79239317ff33fdb04` (OpenAPI 1.0.0; the TEA specification is still beta). Minimum supported Rust version: 1.89. License: Apache-2.0.
 
 ## What it is, and what it is not
 
@@ -31,7 +31,7 @@ It is not a TEA server, does not sign or publish anything, does not scan for vul
 **From source** (needs Rust 1.89 or later):
 
 ```sh
-cargo install --git https://github.com/Mehrn0ush/libtea-rs --tag v0.1.6 --locked libtea-cli
+cargo install --git https://github.com/Mehrn0ush/libtea-rs --tag v0.1.7 --locked libtea-cli
 ```
 
 This builds the `libtea` binary at the tagged release. Without `--tag` it builds the default branch. No checksum or attestation check is involved in this route. `libtea-cli` is not published to crates.io, so `cargo install libtea-cli` does not work.
@@ -40,7 +40,7 @@ This builds the `libtea` binary at the tagged release. Without `--tag` it builds
 
 ```toml
 [dependencies]
-libtea-client = "0.1.6"
+libtea-client = "0.1.7"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
@@ -73,10 +73,11 @@ identifier 2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
 well_known https://example.com/.well-known/tea
 ```
 
-Resolve a TEI, then download one artifact and check it:
+Resolve a TEI (or a Package URL on a known API base), then download one artifact and check it:
 
 ```sh
 libtea discover tei://example.com/uuid/2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
+libtea discover --purl pkg:npm/left-pad@1.3.0 --base https://api.example.com
 libtea download --base https://api.example.com --artifact 11111111-1111-4111-8111-111111111111 --revision 1 --media-type application/vnd.cyclonedx+json --output sbom.json
 ```
 
@@ -85,6 +86,42 @@ integrity verified (decoded-byte checksums only; not publisher authenticity)	str
 ```
 
 `download` writes to a temporary file and moves it into place only after every declared checksum matched the decoded bytes. An existing output file is refused unless you pass `--force`. If all declared checksums are SHA-1 the command exits 4 and writes nothing, unless you pass `--allow-weak-checksums`. Add `--require-checksums` to fail when a format declares none.
+
+### Inspect a TEI
+
+`inspect` resolves a TEI and prints a summary of its product, product release, components, latest collection and artifact formats. It downloads nothing. To fetch the latest collection's artifacts, check them and record them, use `sync` (next section).
+
+```sh
+libtea inspect tei://example.com/uuid/2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
+```
+
+### Search by identifier
+
+`search` queries products, product releases, components or component releases on a known API base, filtered by identifier type and value (or by type alone). A PURL or TEI value is checked before it is sent, and is sent as given. Pages are the caller's: pass the printed `next_page_token` back as `--page-token`.
+
+```sh
+libtea search products --base https://api.example.com --id-type PURL --id-value pkg:npm/left-pad@1.3.0
+libtea search product-releases --base https://api.example.com --sort-field release-date --sort-order desc --page-size 20
+```
+
+### Lifecycle (CLE)
+
+`cle` fetches the lifecycle events of a product, product release, component or component release. With `--version` it also says which apply to that version, comparing versions as SemVer. A range it cannot compare (a `vers` type other than `semver` or `npm`, such as `pypi`) is listed as not evaluated, never as not applying.
+
+```sh
+libtea cle --base https://api.example.com --product-release 2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d --version 1.4.0
+```
+
+```text
+version	1.4.0
+released	2024-01-01T00:00:00Z
+end_of_development	-
+end_of_support	-
+end_of_life	2026-01-01T00:00:00Z
+end_of_distribution	-
+end_of_marketing	-
+superseded_by	-
+```
 
 ### Lock files in CI
 
@@ -195,7 +232,7 @@ The repository has a composite action that downloads a release of `libtea`, veri
 ```yaml
 - uses: Mehrn0ush/libtea-rs@<commit-sha-of-a-release-tag>
   with:
-    version: "0.1.6"
+    version: "0.1.7"
     command: sync
     check: "true"
     tei: tei://example.com/uuid/2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
