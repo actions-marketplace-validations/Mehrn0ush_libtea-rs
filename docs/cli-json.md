@@ -12,8 +12,10 @@ Newer objects (`sync`, `diff`, `download` status, `cache`, `cle`, `inspect`) car
 this is the contract since 0.1.0; it did not change through 0.1.6 (the CLI's
 sources are identical between the `v0.1.0` and `v0.1.6` tags). In 0.1.7,
 `download --json` gained an optional `signature` member (below); nothing
-was renamed or removed. After 0.1.7, `discover --purl` (same array as
-`discover <tei>`), `cle`, `search` and `inspect` were added.
+was renamed or removed. In 0.1.8, `discover --purl` (same array as
+`discover <tei>`), `cle`, `search` and `inspect` were added; existing outputs did not change.
+In `libtea-cli` 0.2.1, `cle` gained `--scheme` and a `scheme` member next to
+`version`; nothing was renamed or removed.
 
 ## `spec --json`
 
@@ -29,7 +31,8 @@ Object: `domain`, `type`, `identifier`, `well_known`, `publication_issues`
 
 The flag is accepted for uniformity; the report is always JSON. Object:
 `spec_commit`, `spec_version`, `is_certification` (always `false`), `cases`
-(array of `{id, passed, detail}`). It is an offline smoke report, not a
+(array of `{id, passed, detail}`), `warnings` (always an empty array: no
+command runs the strict-schema lints yet). It is an offline smoke report, not a
 certification.
 
 ## `discover <tei> --json` and `discover --purl <purl> --base <url> --json`
@@ -40,7 +43,7 @@ the server and API version to call next. For `--purl` that is chosen from the
 checked locally first (a malformed one is exit status 2 and nothing is sent)
 and is sent exactly as given, not in canonical form.
 
-## `cle --base <url> (--product | --product-release | --component | --component-release) <uuid> [--version <v>] --json`
+## `cle --base <url> (--product | --product-release | --component | --component-release) <uuid> [--version <v> [--scheme semver|pypi]] --json`
 
 ```json
 {
@@ -50,6 +53,7 @@ and is sent exactly as given, not in canonical form.
   "message": null,
   "cle": {"events": [ ... ], "definitions": { ... }},
   "version": "1.4.0",
+  "scheme": "semver",
   "status": {
     "released": "2024-01-01T00:00:00Z",
     "end_of_development": null,
@@ -70,14 +74,18 @@ and is sent exactly as given, not in canonical form.
   TEA OpenAPI). When the server answers `404 NOT_IMPLEMENTED`, `implemented`
   is `false`, `cle` is `null`, `message` is the server's message (or `null`)
   and the exit status is 0. Any other `404` is exit status 5.
-- `version` and `status` are present only with `--version`, which takes a
-  SemVer 2.0 version (`1.4.0`, not `1.4` or `v1.4.0`; anything else is exit
-  status 2 and nothing is sent). `status` is `null` when `implemented` is
-  `false`.
+- `version`, `scheme` and `status` are present only with `--version`.
+  `scheme` is `semver` (the default) or `pypi` (`--scheme pypi`). With
+  `semver`, `--version` takes a SemVer 2.0 version (`1.4.0`, not `1.4` or
+  `v1.4.0`); with `pypi`, a PEP 440 version (`1.4`, `1.4.0rc1`, `v1.4`), and
+  `version` is its normalized form (`1.4.0-RC1` is `1.4.0rc1`). Anything else
+  is exit status 2 and nothing is sent. `--scheme` without `--version` is exit
+  status 2. `status` is `null` when `implemented` is `false`.
 - Dates are the `effective` time of the event that applies (the highest `id`
   of each type); `null` means no applying event *that could be evaluated*.
-  Events whose `vers` range is of a type other than `semver` or `npm`, that
-  are malformed, or whose type is unknown are listed in `unevaluated` with
+  Events whose `vers` range is of a type the scheme cannot compare (with
+  `semver`, any type but `semver` and `npm`; with `pypi`, any type but
+  `pypi`), that are malformed, or whose type is unknown are listed in `unevaluated` with
   `reason` `unsupported_scheme` (`detail`: the `vers` type), `malformed`
   (`detail`: what was wrong) or `unknown_event_type` (`detail`: the type).
   Check `unevaluated` before reading a `null` as "does not apply".

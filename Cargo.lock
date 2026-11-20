@@ -873,13 +873,12 @@ checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
 
 [[package]]
 name = "libtea-cli"
-version = "0.1.8"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
  "clap",
  "libtea-client",
- "libtea-conformance",
  "libtea-core",
  "serde",
  "serde_json",
@@ -891,7 +890,7 @@ dependencies = [
 
 [[package]]
 name = "libtea-client"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "base64 0.23.1",
  "bytes",
@@ -910,19 +909,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "libtea-conformance"
-version = "0.1.8"
-dependencies = [
- "libtea-client",
- "libtea-core",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "libtea-core"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "base64 0.23.1",
  "blake2",
@@ -939,6 +927,14 @@ dependencies = [
  "thiserror",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "libtea-doctests"
+version = "0.0.0"
+dependencies = [
+ "libtea-client",
+ "tokio",
 ]
 
 [[package]]

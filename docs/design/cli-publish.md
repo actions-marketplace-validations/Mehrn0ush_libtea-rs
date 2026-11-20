@@ -1,6 +1,33 @@
 # Folding `libtea-conformance` into the CLI and publishing `libtea-cli` 0.2: plan
 
-**Status:** plan for issue #14, for review. Nothing here is done.
+**Status:** done (issue #14). `libtea-cli` 0.2.0 was published to crates.io
+and GitHub Releases on 2026-11-20 (release run 44691175896). The plan as written follows. Decisions taken (2026-11-20): crate name
+`libtea-cli`; a tiny unpublished `libtea-doctests` crate for the README
+doctests; independent versions (the CLI at 0.2.0, the libraries stay on 0.1.x).
+Steps 1 and 2 are done: the conformance code is in `crates/tea-cli/src/conformance.rs`,
+the README doctests are in `crates/doctests`, and `libtea-conformance` is
+removed. Its `#[non_exhaustive]` guards were dropped with it: the types are
+`pub(crate)` in a binary now, so there is nothing for a caller to construct.
+
+Tags (decided 2026-11-20): `v<version>` stays the CLI's tag. It already is:
+`scripts/check-release-tag.sh` compares it with `crates/tea-cli/Cargo.toml`,
+and the release workflow, the Action's download URL and the attestation's
+`--source-ref` all use it, so none of them change. A release of the libraries
+alone is tagged `libs-v<version>` and starts no workflow.
+
+Step 3 is done: `libtea-cli` has crates.io metadata, its own `README.md` and
+`LICENSE`, and an `include` list (sources, README, LICENSE; the tests read
+repository files and stay out). CI checks the packaged file list. A full
+`cargo package -p libtea-cli` resolves `libtea-client` from crates.io, so it
+can only pass once the libraries it needs are published; it is a release step,
+not a CI gate. `publish = false` is gone, so nothing but the release checklist
+keeps the CLI from being published before 0.2.0.
+
+Step 4 is done: `docs/installing.md`, the README, `docs/compatibility.md`,
+`docs/architecture.md` and `docs/release-checklist.md` describe the crates.io
+route and the release order. Step 5 is the
+release PR for `libtea-cli` 0.2.0; the libraries stay at 0.1.8 and are not
+republished.
 
 ## Why
 

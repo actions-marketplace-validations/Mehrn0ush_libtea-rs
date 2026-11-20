@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 # Check that the repository settings the release process depends on exist.
 #
-#   check-repo-settings.sh [OWNER/REPO [BRANCH]]
+#   check-repo-settings.sh OWNER/REPO [BRANCH]
+#
+# OWNER/REPO defaults to $GITHUB_REPOSITORY (set in workflows); there is no
+# default outside one.
 #
 # Reads two things through `gh api` (read-only, uses GH_TOKEN):
 #   * the rules that apply to BRANCH (default main): a pull request is required,
 #     the CI jobs below are required status checks, and force pushes and
 #     deletion are blocked;
-#   * the repository rulesets: an active tag ruleset covering `v*` that blocks
-#     creation by others, updates, deletion and force pushes.
+#   * the repository rulesets: an active tag ruleset covering `v*`, and one
+#     covering `libs-v*` (the same one is fine), each blocking creation by
+#     others, updates, deletion and force pushes.
 #
 # A third read, repos/OWNER/REPO/actions/permissions, needs admin rights. When
 # the token may not read it (HTTP 403 or 404, as with the workflow's
@@ -22,7 +26,6 @@
 # public repository they are free.
 #
 # The names in REQUIRED_CHECKS are the job names in .github/workflows/ci.yml.
-# `cargo audit` is left out on purpose: that job is continue-on-error.
 
 set -euo pipefail
 
@@ -109,19 +112,22 @@ if actions_checked:
             'Set Settings, Actions, General to "Allow all actions and reusable workflows"'
         )
 
+# v* tags the CLI and binary releases; libs-v* a release of the libraries alone.
 need_tag_rules = {"creation", "update", "deletion", "non_fast_forward"}
-good_tag_ruleset = False
+protected = set()
 for path in glob.glob(os.path.join(work, "tag-*.json")):
     ruleset = json.load(open(path, encoding="utf-8"))
     include = set(ruleset.get("conditions", {}).get("ref_name", {}).get("include", []))
-    covers = bool(include & {"refs/tags/v*", "~ALL"})
     has = {rule.get("type") for rule in ruleset.get("rules", [])}
-    if ruleset.get("enforcement") == "active" and covers and need_tag_rules <= has:
-        good_tag_ruleset = True
-if not good_tag_ruleset:
-    problems.append(
-        "no active tag ruleset covers v* and blocks creation, update, deletion and force pushes"
-    )
+    if ruleset.get("enforcement") == "active" and need_tag_rules <= has:
+        for pattern in ("v*", "libs-v*"):
+            if include & {f"refs/tags/{pattern}", "~ALL"}:
+                protected.add(pattern)
+for pattern in ("v*", "libs-v*"):
+    if pattern not in protected:
+        problems.append(
+            f"no active tag ruleset covers {pattern} and blocks creation, update, deletion and force pushes"
+        )
 
 if problems:
     for problem in problems:

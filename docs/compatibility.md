@@ -1,7 +1,7 @@
 # Compatibility
 
 What this repository supports, and how each claim is checked. Last reviewed for
-0.1.7 (2026-11-19).
+the libraries 0.1.9 and `libtea-cli` 0.2.1 (2026-11-20).
 
 ## TEA specification
 
@@ -22,7 +22,7 @@ server; see `docs/interoperability.md` for the servers it has been run against.
 | MSRV | 1.89, checked in CI (`rust 1.89.0` job) with the committed `Cargo.lock` |
 | MSRV policy | Latest stable minus about four releases; raised only in a minor release, and listed in `CHANGELOG.md` |
 | Edition | 2021 |
-| Semver | `libtea-core` and `libtea-client` follow SemVer from 0.1.0, checked by `cargo semver-checks` in CI. Items marked **Experimental** (HTTP cache, lock file, signature extension point and format detection, `purl`, `vers`, `lifecycle`) may change in a 0.x minor release |
+| Semver | `libtea-core` and `libtea-client` follow SemVer from 0.1.0, checked by `cargo semver-checks` in CI. Items marked **Experimental** (HTTP cache, lock file, signature extension point and format detection, `purl`, `vers`, `lifecycle`, `pep440`) may change in a 0.x minor release |
 | `unsafe` | `#![forbid(unsafe_code)]` in every crate |
 | TLS | rustls with bundled `webpki-roots`; no system certificate store, so trust roots change only with a new release |
 
@@ -44,7 +44,12 @@ server; see `docs/interoperability.md` for the servers it has been run against.
 `product-release`, `sync`, `sync --check`) ran through the Action `v0.1.5` on
 `ubuntu-24.04`, `macos-15` and `windows-2022` against two public servers
 (scratch-repository run 43160787117; `docs/interoperability.md`). Not with
-credentials, and not on the arm64 Linux runner or in a container.
+credentials, and not on the arm64 Linux runner or in a container. The commands
+added in 0.1.8 (`discover --purl`, `cle`, `search`, `inspect`) ran with the 0.1.8
+binary on the same three runners against the same two servers
+(scratch-repository run 44662015332;
+`docs/interop/cli-0.1.8-2026-11-20.md`). `cle --scheme pypi` (0.2.1) is tested
+against mock servers only: neither server serves `vers:pypi` ranges.
 
 **Linux libc.** The gnu archives need glibc 2.34 or newer (Ubuntu 22.04+,
 Debian 12+, RHEL 9+), measured on the v0.1.0 archives; they are built on
@@ -63,7 +68,8 @@ build-provenance attestation (`docs/installing.md`).
 | GitHub Releases archives | SHA-256 and attestation (`gh attestation verify`) |
 | GitHub Action `Mehrn0ush/libtea-rs` (Marketplace: `libtea-rs`) | Downloads the archive, checks SHA-256, verifies the attestation when `gh` is present. Use 0.1.2 or later |
 | crates.io (`libtea-core`, `libtea-client`) | crates.io checksums; no attestation |
+| crates.io (`libtea-cli`, from 0.2.0) | `cargo install libtea-cli --locked` builds from source; crates.io checksums; no attestation |
 | `cargo install --git ... --tag vX.Y.Z libtea-cli` | Builds from source; no checksum or attestation |
 
-The CLI is not on crates.io (issue #14). There is no Homebrew formula or
+The CLI 0.1.x is not on crates.io; 0.2.0 and later are (issue #14). There is no Homebrew formula or
 container image (issue #17).

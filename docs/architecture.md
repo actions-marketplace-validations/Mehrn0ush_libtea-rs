@@ -1,8 +1,7 @@
 # Architecture
 
 ```text
-libtea-cli
-  -> libtea-conformance (offline checks and reports)
+libtea-cli             (commands, offline conformance report)
   -> libtea-client     (HTTP, auth, streaming, retries)
        -> libtea-core  (TEI, versions, models, checksums, policy)
 ```
@@ -11,9 +10,11 @@ libtea-cli
 
 `libtea-client` owns the HTTP session, destination policy, token cache, and resource limits. `Service` is one versioned API base. `Client::discover` walks well-known endpoints and calls `/discovery` on each selected base.
 
-`libtea-conformance` runs checks that do not contact a network and writes a JSON report. A passing report means the local checks passed. It does not certify a server.
+`libtea conformance` (`crates/tea-cli/src/conformance.rs`) runs checks that do not contact a network and writes a JSON report. A passing report means the local checks passed. It does not certify a server. Until 0.1.8 these checks were the unpublished `libtea-conformance` crate.
 
-`libtea-cli` calls the public crates. It does not reimplement TEI parsing or HTTP. Its commands are `spec`, `parse-tei`, `conformance`, `discover` (a TEI, or a PURL on a known base), `product-release`, `collections`, `cle`, `search`, `inspect`, `download`, `sync`, `diff` and `cache`. Identifier filters are `ListParams` on `libtea-client` list methods; `search` exposes them for the four top-level queries.
+`libtea-doctests` (`crates/doctests`, not published) compiles the Rust snippets of the workspace `README.md` as doctests. Nothing depends on it.
+
+`libtea-cli` calls the public crates. It does not reimplement TEI parsing or HTTP. It is versioned separately from the libraries (it goes to 0.2.0 while they stay on 0.1.x) and, from 0.2.0, published to crates.io after them; its stable surface is its commands, flags, exit codes, `--json` output and lock-file format, not a Rust API (`docs/design/cli-publish.md`). Its commands are `spec`, `parse-tei`, `conformance`, `discover` (a TEI, or a PURL on a known base), `product-release`, `collections`, `cle`, `search`, `inspect`, `download`, `sync`, `diff` and `cache`. Identifier filters are `ListParams` on `libtea-client` list methods; `search` exposes them for the four top-level queries.
 
 ## Request path
 
@@ -53,7 +54,7 @@ a fresh clock.
 
 ## Dependency direction
 
-`libtea-core` does not depend on `libtea-client`. `libtea-client` does not depend on `libtea-cli` or `libtea-conformance`. The fuzz crate is excluded from the workspace so `cargo test --workspace` does not require `cargo-fuzz`.
+`libtea-core` does not depend on `libtea-client`. `libtea-client` does not depend on `libtea-cli`. The fuzz crate is excluded from the workspace so `cargo test --workspace` does not require `cargo-fuzz`.
 
 ## Specification baseline
 
@@ -180,7 +181,7 @@ The lock file (`Cargo.lock`) is committed. TLS is rustls only. Direct dependenci
 
 | Crate | Used by | Why |
 | --- | --- | --- |
-| `serde`, `serde_json` | core, client, conformance | Models, lock file, cache entries, JSON output. |
+| `serde`, `serde_json` | core, client, cli | Models, lock file, cache entries, JSON output. |
 | `thiserror` | core, client | Error types. |
 | `url` | core, client, cli | URL parsing and destination checks. |
 | `uuid`, `semver` | core | Typed identifiers and API version precedence. |

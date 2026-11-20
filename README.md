@@ -9,7 +9,7 @@
 
 Independent Rust client libraries and a command-line tool for the [Transparency Exchange API](https://github.com/CycloneDX/transparency-exchange-api) (TEA).
 
-**Status:** 0.1.8. Releases 0.1.1 to 0.1.4 changed only documentation, CI and the GitHub Action; 0.1.5 added `libtea_client::core`, a re-export of `libtea-core`; 0.1.6 fixed a panic in `libtea_core::http_cache::parse_retry_after` and updated internal dependencies; 0.1.7 added Package URL parsing and comparison (`libtea_core::purl`), version ranges and CLE lifecycle evaluation for SemVer (`libtea_core::vers`, `libtea_core::lifecycle`), and signature format detection (`libtea_core::signature_format`, all Experimental), and fixed lost cache entries when several clients share a cache directory; 0.1.8 adds `Service::discover_purl` (`libtea-client`) and the CLI commands `discover --purl`, `cle`, `search` and `inspect`. Supported TEA versions, Rust versions and platforms, and how each is tested: [`docs/compatibility.md`](docs/compatibility.md). `libtea-core` and `libtea-client` are on crates.io and the `libtea` binaries are on GitHub Releases. Experimental until 0.9: expect breaking changes before 1.0. Written against TEA commit `962a0228af1bfcc1232ac3f79239317ff33fdb04` (OpenAPI 1.0.0; the TEA specification is still beta). Minimum supported Rust version: 1.89. License: Apache-2.0.
+**Status:** libraries 0.1.9, CLI 0.2.1. Releases 0.1.1 to 0.1.4 changed only documentation, CI and the GitHub Action; 0.1.5 added `libtea_client::core`, a re-export of `libtea-core`; 0.1.6 fixed a panic in `libtea_core::http_cache::parse_retry_after` and updated internal dependencies; 0.1.7 added Package URL parsing and comparison (`libtea_core::purl`), version ranges and CLE lifecycle evaluation for SemVer (`libtea_core::vers`, `libtea_core::lifecycle`), and signature format detection (`libtea_core::signature_format`, all Experimental), and fixed lost cache entries when several clients share a cache directory; 0.1.8 adds `Service::discover_purl` (`libtea-client`) and the CLI commands `discover --purl`, `cle`, `search` and `inspect`. From there the CLI is versioned separately: `libtea-cli` 0.2.0 is the first on crates.io and changes no command, flag, exit code or JSON output. Libraries 0.1.9 add PEP 440 versions (`libtea_core::pep440`), `vers:pypi` and CLE evaluation for them, and the `pypi` rules in `Purl::canonical` (all Experimental); `libtea-cli` 0.2.1 uses them and adds `cle --scheme pypi`. Supported TEA versions, Rust versions and platforms, and how each is tested: [`docs/compatibility.md`](docs/compatibility.md). `libtea-core`, `libtea-client` and `libtea-cli` are on crates.io and the `libtea` binaries are on GitHub Releases. Experimental until 0.9: expect breaking changes before 1.0. Written against TEA commit `962a0228af1bfcc1232ac3f79239317ff33fdb04` (OpenAPI 1.0.0; the TEA specification is still beta). Minimum supported Rust version: 1.89. License: Apache-2.0.
 
 ## What it is, and what it is not
 
@@ -21,26 +21,34 @@ It is not a TEA server, does not sign or publish anything, does not scan for vul
 | --- | --- |
 | `libtea-core` | TEI, version negotiation, models, checksums, destination rules, lock file format. No network code. |
 | `libtea-client` | Async client (`tokio`, `reqwest`, `rustls`). |
-| `libtea-cli` | The `libtea` command. Not published to crates.io. |
-| `libtea-conformance` | Offline smoke checks used by `libtea conformance`. Not published. |
+| `libtea-cli` | The `libtea` command. On crates.io from 0.2.0; versioned separately from the libraries. |
+| `libtea-doctests` | Compiles this README's Rust snippets. Not published. |
 
 ## Install
 
 **Release binaries.** Each release has archives for seven targets (Linux gnu and musl on x86_64 and aarch64, macOS on x86_64 and aarch64, Windows x86_64), a `SHA256SUMS` file, a CycloneDX SBOM and a build-provenance attestation. Download from the [releases page](https://github.com/Mehrn0ush/libtea-rs/releases); [docs/installing.md](docs/installing.md) gives the checksum and attestation commands, which you should run before installing. Then `libtea --version` shows what you have.
 
-**From source** (needs Rust 1.89 or later):
+**From crates.io**, from `libtea-cli` 0.2.0 (0.1.x is not on crates.io). It needs Rust 1.89 or later:
 
 ```sh
-cargo install --git https://github.com/Mehrn0ush/libtea-rs --tag v0.1.8 --locked libtea-cli
+cargo install libtea-cli --locked
 ```
 
-This builds the `libtea` binary at the tagged release. Without `--tag` it builds the default branch. No checksum or attestation check is involved in this route. `libtea-cli` is not published to crates.io, so `cargo install libtea-cli` does not work.
+This compiles the published source on your machine. Unlike the release binaries, it involves no `SHA256SUMS` file and no attestation; [docs/installing.md](docs/installing.md) says what that means.
+
+**From a tag** (needs Rust 1.89 or later):
+
+```sh
+cargo install --git https://github.com/Mehrn0ush/libtea-rs --tag v0.2.1 --locked libtea-cli
+```
+
+This builds the `libtea` binary at the tagged release. Without `--tag` it builds the default branch. No checksum or attestation check is involved in this route either.
 
 **Libraries** from crates.io. The library example below uses `libtea-client` and `tokio`; the `libtea-core` types come through `libtea_client::core` (from 0.1.5; with 0.1.4 or older, also depend on `libtea-core`):
 
 ```toml
 [dependencies]
-libtea-client = "0.1.8"
+libtea-client = "0.1.9"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
@@ -106,11 +114,14 @@ libtea search product-releases --base https://api.example.com --sort-field relea
 
 ### Lifecycle (CLE)
 
-`cle` fetches the lifecycle events of a product, product release, component or component release. With `--version` it also says which apply to that version, comparing versions as SemVer. A range it cannot compare (a `vers` type other than `semver` or `npm`, such as `pypi`) is listed as not evaluated, never as not applying.
+`cle` fetches the lifecycle events of a product, product release, component or component release. With `--version` it also says which apply to that version, comparing versions as SemVer, or as Python package versions (PEP 440) with `--scheme pypi`. A range the scheme cannot compare (for SemVer, a `vers` type other than `semver` or `npm`; for `pypi`, any type but `pypi`) is listed as not evaluated, never as not applying.
 
 ```sh
 libtea cle --base https://api.example.com --product-release 2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d --version 1.4.0
+libtea cle --base https://api.example.com --product-release 2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d --version 1.4 --scheme pypi
 ```
+
+The first prints:
 
 ```text
 version	1.4.0
@@ -232,7 +243,7 @@ The repository has a composite action that downloads a release of `libtea`, veri
 ```yaml
 - uses: Mehrn0ush/libtea-rs@<commit-sha-of-a-release-tag>
   with:
-    version: "0.1.8"
+    version: "0.2.1"
     command: sync
     check: "true"
     tei: tei://example.com/uuid/2ff3ae7c-8eab-4e0b-9b8b-1a0c4c4c1c2d
@@ -257,11 +268,11 @@ Details and reasoning: [docs/security.md](docs/security.md). Report vulnerabilit
 
 ## Scope and non-goals
 
-Not in 0.1.x: a publisher API; official CycloneDX or ECMA certification (the offline suite is a smoke test); signature verification (see `docs/design/signature-verification.md`); universal server compatibility; HTTPS SVCB lookup; OAuth beyond API-key `client_credentials`; publishing `libtea-cli` or `libtea-conformance` to crates.io.
+Not in 0.1.x: a publisher API; official CycloneDX or ECMA certification (the offline suite is a smoke test); signature verification (see `docs/design/signature-verification.md`); universal server compatibility; HTTPS SVCB lookup; OAuth beyond API-key `client_credentials`.
 
 ## Documentation
 
-- [docs/installing.md](docs/installing.md): verify and install the release binaries
+- [docs/installing.md](docs/installing.md): verify and install the release binaries, or install from crates.io
 - [docs/github-action.md](docs/github-action.md), [docs/lock-file.md](docs/lock-file.md), [docs/cache.md](docs/cache.md)
 - [docs/cli-json.md](docs/cli-json.md), [docs/cli-exit-codes.md](docs/cli-exit-codes.md)
 - [docs/auth.md](docs/auth.md), [docs/security.md](docs/security.md), [docs/architecture.md](docs/architecture.md)
