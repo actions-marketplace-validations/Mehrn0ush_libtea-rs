@@ -1,10 +1,10 @@
 # Installing and verifying the `libtea` CLI
 
 > **Status.** Releases are published on GitHub Releases (0.1.0 was the first;
-> 0.1.1 to 0.1.8, 0.2.0 and 0.2.1 follow it). This page describes what `.github/workflows/release.yml`
+> 0.1.1 to 0.1.8 and 0.2.0 to 0.2.2 follow it). This page describes what `.github/workflows/release.yml`
 > produces. The verification commands below were run against each release from
-> 0.1.0 to 0.2.0 with gh 2.103.3, and against the 0.2.1 `aarch64-apple-darwin`
-> archive.
+> 0.1.0 to 0.2.0 with gh 2.103.3, and against the 0.2.1 and 0.2.2
+> `aarch64-apple-darwin` archives.
 
 `libtea` is distributed as a GitHub release. From 0.2.0 it
 is also on crates.io as `libtea-cli`, which has no checksum file or attestation
@@ -134,6 +134,43 @@ that you got what crates.io serves, not which commit or workflow it was built
 from. The crate is uploaded from a maintainer's machine, not by the release
 workflow. You compile the binary yourself, so nothing ties it to the attested
 archives. If you need the attestation, use the archives.
+
+## With cargo-binstall (after 0.2.2)
+
+From the first CLI release after 0.2.2, the `libtea-cli` crate tells
+[cargo-binstall](https://github.com/cargo-bins/cargo-binstall) where the
+release archives are, so it downloads the binary instead of compiling it:
+
+```sh
+cargo binstall libtea-cli --version X.Y.Z
+libtea --version
+```
+
+binstall takes the archive for your target from the GitHub release `vX.Y.Z`
+and installs the `libtea` binary from it. It does **not** check `SHA256SUMS`
+or the build-provenance attestation. To verify, download the archive and run
+the checks above instead. The crate turns off binstall's quick-install
+strategy, which would fetch a binary built by a third party rather than by
+`release.yml`. If no archive matches your target, binstall falls back to
+`cargo install`, which is the crates.io route above. For 0.2.2 and earlier the
+crate has no binstall metadata, and binstall finds no archive.
+
+## With Homebrew (0.2.2 and later)
+
+On macOS and Linux:
+
+```sh
+brew install mehrn0ush/tap/libtea
+libtea --version
+```
+
+The formula in `Mehrn0ush/homebrew-tap` downloads the release archive for
+your platform: darwin on macOS, and the statically linked musl build on
+Linux. Homebrew checks the archive against the SHA-256 written in the
+formula. Those values are copied from the release's `SHA256SUMS` after it
+passes `gh attestation verify`, but Homebrew does not check the attestation
+itself. To check it, verify the archive as described above. The tap is
+updated by hand after each release, so it can lag behind a new release.
 
 ## Build from source instead
 

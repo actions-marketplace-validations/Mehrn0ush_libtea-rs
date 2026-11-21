@@ -23,7 +23,8 @@ The CLI and the libraries have separate versions (the CLI goes to 0.2.0 while
 attestation's `--source-ref` all use it. A `libs-v` tag does not match the
 release workflow's `v[0-9]+...` trigger and starts nothing. `libs-v0.1.9`
 (2026-11-20) was the first library-only release: `libtea-core` and
-`libtea-client` 0.1.9, no release run, no GitHub release.
+`libtea-client` 0.1.9, no release run, no GitHub release. `libs-v0.2.0` and
+`v0.2.2` (2026-11-21) were the first "Both" release, on one commit.
 
 Publish in dependency order: `libtea-core`, then `libtea-client`, then
 `libtea-cli`, each only after the index serves the one before. Publish only
@@ -80,6 +81,9 @@ versions it needs, so check that those are on crates.io before tagging.
 14. **Publish the GitHub draft: publish the release by hand** (CLI releases
     only; the workflow never does).
 15. **Post-publish checks:** the commands are in "Post-publish checks" below.
+16. **Homebrew formula** (CLI releases only): regenerate `Formula/libtea.rb`
+    from the verified `SHA256SUMS` and open a pull request to
+    `Mehrn0ush/homebrew-tap` (see "Homebrew tap" below).
 
 **If something fails.** Before the first `cargo publish` (steps 5 to 7: the
 workflow, or the verification of the draft): the maintainer deletes the draft
@@ -129,6 +133,11 @@ kept.
   That CI run on the tag is not a release gate (CI on `main` at
   `RELEASE_SHA` is). For `v0.2.1` its macOS job was cancelled because no
   hosted runner picked it up; `gh run rerun <id> --failed` re-ran it green.
+- **docs.rs lags crates.io.** A new version shows "The requested version does
+  not exist" on docs.rs until its build leaves the queue
+  (https://docs.rs/releases/queue). That is not a failed publish; check
+  `cargo info`, and look at `https://docs.rs/crate/<crate>/<version>/builds`
+  only if the page is still missing hours later.
 - **`scripts/check-repo-settings.sh` takes the repository**:
   `./scripts/check-repo-settings.sh Mehrn0ush/libtea-rs` (in a workflow it
   defaults to `$GITHUB_REPOSITORY`).
@@ -354,7 +363,7 @@ stolen tokens, not against the maintainer.
 `SHA256SUMS` and a CycloneDX SBOM, attests build provenance, and creates a
 **draft** GitHub release. It publishes nothing to crates.io, never publishes the
 GitHub release itself, and holds no secret. It has run for every tag from `v0.1.0` to
-`v0.2.1`, all successfully (`v0.1.6`: run 43182817134; `v0.1.7`: run 44500983192; `v0.1.8`: run 44584585018; `v0.2.0`: run 44691175896; `v0.2.1`: run 44783205174). Read `docs/release-pins.md` before changing it: it
+`v0.2.2`, all successfully (`v0.1.6`: run 43182817134; `v0.1.7`: run 44500983192; `v0.1.8`: run 44584585018; `v0.2.0`: run 44691175896; `v0.2.1`: run 44783205174; `v0.2.2`: run 44895512012). Read `docs/release-pins.md` before changing it: it
 lists the pins and how to refresh them.
 
 1. Before tagging, check the pins (`docs/release-pins.md`):
@@ -388,7 +397,30 @@ The CLI ships three ways:
 - from 0.2.0, `cargo install libtea-cli --locked` from crates.io (published by
   hand in steps 12 and 13; no checksum file or attestation);
 - `cargo install --git https://github.com/Mehrn0ush/libtea-rs --tag vX.Y.Z --locked libtea-cli`,
-  which builds the tagged source (no checksum or attestation either).
+  which builds the tagged source (no checksum or attestation either);
+- from 0.2.2, `brew install mehrn0ush/tap/libtea` from the
+  `Mehrn0ush/homebrew-tap` repository. It installs the release archives, and
+  Homebrew checks the SHA-256 in the formula.
+
+### Homebrew tap
+
+`Formula/libtea.rb` in `Mehrn0ush/homebrew-tap` is generated, never edited
+by hand. After step 14, in a new empty directory:
+
+```sh
+gh release download vX.Y.Z --repo Mehrn0ush/libtea-rs --pattern SHA256SUMS
+gh attestation verify SHA256SUMS --repo Mehrn0ush/libtea-rs --signer-workflow Mehrn0ush/libtea-rs/.github/workflows/release.yml --source-ref refs/tags/vX.Y.Z
+python3 -I /path/to/libtea-rs/scripts/make-homebrew-formula.py --version X.Y.Z --sums SHA256SUMS >libtea.rb
+```
+
+Copy `libtea.rb` to `Formula/libtea.rb` on a branch of the tap, open a pull
+request, and after the merge check with `brew update`,
+`brew upgrade mehrn0ush/tap/libtea` (or `brew install`), `brew test libtea`,
+and `libtea --version`. macOS gets the darwin archives, and Linux gets the
+statically linked musl archives. The `x86_64-apple-darwin` archive is
+cross-compiled and not run by the release smoke test, so `brew test` on an
+Intel Mac is its first run. Nothing updates the tap automatically: that
+would need a token that can push to it.
 
 `docs/installing.md` describes each. Until 0.1.8 the CLI depended on the
 unpublished `libtea-conformance` crate, which kept it off crates.io; that code

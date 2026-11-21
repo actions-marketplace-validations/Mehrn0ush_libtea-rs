@@ -1,7 +1,7 @@
 # Compatibility
 
 What this repository supports, and how each claim is checked. Last reviewed for
-the libraries 0.1.9 and `libtea-cli` 0.2.1 (2026-11-20).
+the libraries 0.2.0 and `libtea-cli` 0.2.2 (2026-11-21).
 
 ## TEA specification
 
@@ -50,6 +50,8 @@ binary on the same three runners against the same two servers
 (scratch-repository run 44662015332;
 `docs/interop/cli-0.1.8-2026-11-20.md`). `cle --scheme pypi` (0.2.1) is tested
 against mock servers only: neither server serves `vers:pypi` ranges.
+`download --signature-key` (0.2.2) is tested against OpenSSL-made fixtures
+and mock servers only: neither server publishes artifact signatures.
 
 **Linux libc.** The gnu archives need glibc 2.34 or newer (Ubuntu 22.04+,
 Debian 12+, RHEL 9+), measured on the v0.1.0 archives; they are built on
@@ -69,7 +71,9 @@ build-provenance attestation (`docs/installing.md`).
 | GitHub Action `Mehrn0ush/libtea-rs` (Marketplace: `libtea-rs`) | Downloads the archive, checks SHA-256, verifies the attestation when `gh` is present. Use 0.1.2 or later |
 | crates.io (`libtea-core`, `libtea-client`) | crates.io checksums; no attestation |
 | crates.io (`libtea-cli`, from 0.2.0) | `cargo install libtea-cli --locked` builds from source; crates.io checksums; no attestation |
+| `cargo binstall libtea-cli` (after 0.2.2) | Downloads the release archive; no SHA-256 or attestation check. Quick-install (third-party builds) is turned off |
+| Homebrew `mehrn0ush/tap/libtea` (from 0.2.2) | Release archives (darwin; musl on Linux); Homebrew checks the SHA-256 copied from the attested `SHA256SUMS`; no attestation check |
 | `cargo install --git ... --tag vX.Y.Z libtea-cli` | Builds from source; no checksum or attestation |
 
-The CLI 0.1.x is not on crates.io; 0.2.0 and later are (issue #14). There is no Homebrew formula or
-container image (issue #17).
+The CLI 0.1.x is not on crates.io; 0.2.0 and later are (issue #14). There is no container
+image (issue #17).
