@@ -1,7 +1,7 @@
 # Compatibility
 
 What this repository supports, and how each claim is checked. Last reviewed for
-the libraries 0.2.0 and `libtea-cli` 0.2.2 (2026-11-21).
+`libtea-core` 0.2.1, `libtea-client` 0.2.0 and `libtea-cli` 0.2.3 (2026-11-24).
 
 ## TEA specification
 
@@ -67,11 +67,11 @@ build-provenance attestation (`docs/installing.md`).
 
 | Channel | Provenance |
 | --- | --- |
-| GitHub Releases archives | SHA-256 and attestation (`gh attestation verify`) |
+| GitHub Releases archives | SHA-256 and attestation (`gh attestation verify`); from 0.2.3 the attestation is also attached as `libtea-X.Y.Z.sigstore.json` (`--bundle`) |
 | GitHub Action `Mehrn0ush/libtea-rs` (Marketplace: `libtea-rs`) | Downloads the archive, checks SHA-256, verifies the attestation when `gh` is present. Use 0.1.2 or later |
 | crates.io (`libtea-core`, `libtea-client`) | crates.io checksums; no attestation |
 | crates.io (`libtea-cli`, from 0.2.0) | `cargo install libtea-cli --locked` builds from source; crates.io checksums; no attestation |
-| `cargo binstall libtea-cli` (after 0.2.2) | Downloads the release archive; no SHA-256 or attestation check. Quick-install (third-party builds) is turned off |
+| `cargo binstall libtea-cli` (from 0.2.3) | Downloads the release archive; no SHA-256 or attestation check. Quick-install (third-party builds) is turned off |
 | Homebrew `mehrn0ush/tap/libtea` (from 0.2.2) | Release archives (darwin; musl on Linux); Homebrew checks the SHA-256 copied from the attested `SHA256SUMS`; no attestation check |
 | `cargo install --git ... --tag vX.Y.Z libtea-cli` | Builds from source; no checksum or attestation |
 
